@@ -15,11 +15,11 @@
     <copyright>© Microsoft Corporation. All rights reserved.</copyright>
     <tags>Identity Membership</tags>
     <dependencies>
-      <dependency id="Identity.Core" version="$version$" />
+      <dependency id="IdentityFramework.Core" version="$version$" />
       <dependency id="EntityFramework" version="6.2.0" />
     </dependencies>
   </metadata>
   <files>
-    <file src=".\bin\release\Identity.EntityFramework.dll" target="lib\net45\Identity.EntityFramework.dll" />
+    <file src=".\bin\release\IdentityFramework.EF.dll" target="lib\net45\IdentityFramework.EF.dll" />
   </files>
 </package>

@@ -16,6 +16,6 @@
     <tags>Identity Membership</tags>
   </metadata>
   <files>
-    <file src=".\bin\release\Identity.Core.dll" target="lib\net45\Identity.Core.dll" />
+    <file src=".\bin\release\IdentityFramework.Core.dll" target="lib\net45\IdentityFramework.Core.dll" />
   </files>
 </package>
