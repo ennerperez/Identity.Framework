@@ -2,10 +2,11 @@
 
 ![logo](src/.editoricon.png)
 
-## Microsoft .NET Identity Framework
+## Microsoft .NET Identity Framework & EntityFramework
 
 [![Build status](https://ci.appveyor.com/api/projects/status/rk513ceor92ocdfc?svg=true)](https://ci.appveyor.com/project/ennerperez/identity-framework)
-[![NuGet](http://img.shields.io/nuget/v/Identity.Framework.svg)](https://www.nuget.org/packages/Identity.Framework/)
+[![NuGet](http://img.shields.io/nuget/v/IdentityFramework.Core.svg)](https://www.nuget.org/packages/IdentityFramework.Core/)
+[![NuGet](http://img.shields.io/nuget/v/IdentityFramework.EntityFramework.svg)](https://www.nuget.org/packages/IdentityFramework.EntityFramework/)
 
 ---------------------------------------
 
