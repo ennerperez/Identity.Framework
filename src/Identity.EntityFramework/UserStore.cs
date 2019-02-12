@@ -12,17 +12,15 @@ namespace Microsoft.IdentityFramework
 {
     /// <summary>Implements IUserStore using EntityFramework where TUser is the entity type of the user being stored</summary>
     /// <typeparam name="TUser"></typeparam>
-    public class UserStore<TUser> : UserStore<TUser, IdentityRole, string, IdentityUserLogin, IdentityUserRole, IdentityUserClaim>, IUserStore<TUser>, IUserStore<TUser, string>, IDisposable where TUser : IdentityUser
+    public class UserStore<TUser> : UserStore<TUser, IdentityRole, string, IdentityUserLogin, IdentityUserRole, IdentityUserClaim>, IUserStore<TUser>, IUserStore<TUser, string> where TUser : IdentityUser
     {
-        public UserStore()
-            : this((DbContext)new IdentityDbContext())
+        public UserStore() : this(new IdentityDbContext())
         {
             base.DisposeContext = true;
         }
 
         /// <summary>Constructor that takes the db context</summary>
-        public UserStore(DbContext context)
-            : base(context)
+        public UserStore(DbContext context) : base(context)
         {
         }
     }
@@ -31,7 +29,7 @@ namespace Microsoft.IdentityFramework
     {
         private static class FindByIdFilterParser
         {
-            private static readonly Expression<Func<TUser, bool>> Predicate = (TUser u) => u.Id.Equals(default(TKey));
+            private static readonly Expression<Func<TUser, bool>> Predicate = u => u.Id.Equals(default(TKey));
 
             private static readonly MethodInfo EqualsMethodInfo = ((MethodCallExpression)Predicate.Body).Method;
 
@@ -120,11 +118,7 @@ namespace Microsoft.IdentityFramework
 
         public UserStore(DbContext context)
         {
-            if (context == null)
-            {
-                throw new ArgumentNullException("context");
-            }
-            Context = context;
+            Context = context ?? throw new ArgumentNullException("context");
             AutoSaveChanges = true;
             _userStore = new EntityStore<TUser>(context);
             _roleStore = new EntityStore<TRole>(context);
@@ -141,7 +135,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("user");
             }
             await this.EnsureClaimsLoaded(user).WithCurrentCulture();
-            return Enumerable.ToList<Claim>(Enumerable.Select<TUserClaim, Claim>((IEnumerable<TUserClaim>)((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)user).Claims, (Func<TUserClaim, Claim>)((TUserClaim c) => new Claim(((IdentityUserClaim<TKey>)c).ClaimType, ((IdentityUserClaim<TKey>)c).ClaimValue))));
+            return Enumerable.ToList(Enumerable.Select((user).Claims, (c => new Claim(c.ClaimType, c.ClaimValue))));
         }
 
         public virtual Task AddClaimAsync(TUser user, Claim claim)
@@ -156,12 +150,14 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("claim");
             }
             IDbSet<TUserClaim> userClaims = _userClaims;
-            TUserClaim val = new TUserClaim();
-            val.UserId = user.Id;
-            val.ClaimType = claim.Type;
-            val.ClaimValue = claim.Value;
+            TUserClaim val = new TUserClaim
+            {
+                UserId = user.Id,
+                ClaimType = claim.Type,
+                ClaimValue = claim.Value
+            };
             userClaims.Add(val);
-            return Task.FromResult<int>(0);
+            return Task.FromResult(0);
         }
 
         public virtual async Task RemoveClaimAsync(TUser user, Claim claim)
@@ -180,19 +176,19 @@ namespace Microsoft.IdentityFramework
             IEnumerable<TUserClaim> enumerable;
             if (this.AreClaimsLoaded(user))
             {
-                enumerable = Enumerable.ToList<TUserClaim>(Enumerable.Where<TUserClaim>((IEnumerable<TUserClaim>)((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)user).Claims, (Func<TUserClaim, bool>)delegate (TUserClaim uc)
+                enumerable = Enumerable.ToList(Enumerable.Where(user.Claims, delegate (TUserClaim uc)
                 {
-                    if (((IdentityUserClaim<TKey>)uc).ClaimValue == claimValue)
+                    if (uc.ClaimValue == claimValue)
                     {
-                        return ((IdentityUserClaim<TKey>)uc).ClaimType == claimType;
+                        return uc.ClaimType == claimType;
                     }
                     return false;
                 }));
             }
             else
             {
-                TKey userId = ((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)user).Id;
-                enumerable = await TaskExtensions.WithCurrentCulture<List<TUserClaim>>(QueryableExtensions.ToListAsync<TUserClaim>(Queryable.Where<TUserClaim>((IQueryable<TUserClaim>)this._userClaims, (Expression<Func<TUserClaim, bool>>)((TUserClaim uc) => ((IdentityUserClaim<TKey>)uc).ClaimValue == claimValue && ((IdentityUserClaim<TKey>)uc).ClaimType == claimType && ((IEquatable<TKey>)((IdentityUserClaim<TKey>)uc).UserId).Equals(userId)))));
+                TKey userId = (user).Id;
+                enumerable = await TaskExtensions.WithCurrentCulture(QueryableExtensions.ToListAsync(Queryable.Where(this._userClaims, (uc => uc.ClaimValue == claimValue && uc.ClaimType == claimType && uc.UserId.Equals(userId)))));
             }
             foreach (TUserClaim item in enumerable)
             {
@@ -207,7 +203,7 @@ namespace Microsoft.IdentityFramework
             {
                 throw new ArgumentNullException("user");
             }
-            return Task.FromResult<bool>(user.EmailConfirmed);
+            return Task.FromResult(user.EmailConfirmed);
         }
 
         public virtual Task SetEmailConfirmedAsync(TUser user, bool confirmed)
@@ -218,7 +214,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("user");
             }
             user.EmailConfirmed = confirmed;
-            return Task.FromResult<int>(0);
+            return Task.FromResult(0);
         }
 
         public virtual Task SetEmailAsync(TUser user, string email)
@@ -229,7 +225,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("user");
             }
             user.Email = email;
-            return Task.FromResult<int>(0);
+            return Task.FromResult(0);
         }
 
         public virtual Task<string> GetEmailAsync(TUser user)
@@ -239,13 +235,13 @@ namespace Microsoft.IdentityFramework
             {
                 throw new ArgumentNullException("user");
             }
-            return Task.FromResult<string>(user.Email);
+            return Task.FromResult(user.Email);
         }
 
         public virtual Task<TUser> FindByEmailAsync(string email)
         {
             ThrowIfDisposed();
-            return GetUserAggregateAsync((TUser u) => u.Email.ToUpper() == email.ToUpper());
+            return GetUserAggregateAsync(u => u.Email.ToUpper() == email.ToUpper());
         }
 
         public virtual Task<DateTimeOffset> GetLockoutEndDateAsync(TUser user)
@@ -266,7 +262,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("user");
             }
             user.LockoutEndDateUtc = ((lockoutEnd == DateTimeOffset.MinValue) ? null : new DateTime?(lockoutEnd.UtcDateTime));
-            return Task.FromResult<int>(0);
+            return Task.FromResult(0);
         }
 
         public virtual Task<int> IncrementAccessFailedCountAsync(TUser user)
@@ -277,7 +273,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("user");
             }
             user.AccessFailedCount++;
-            return Task.FromResult<int>(user.AccessFailedCount);
+            return Task.FromResult(user.AccessFailedCount);
         }
 
         public virtual Task ResetAccessFailedCountAsync(TUser user)
@@ -288,7 +284,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("user");
             }
             user.AccessFailedCount = 0;
-            return Task.FromResult<int>(0);
+            return Task.FromResult(0);
         }
 
         public virtual Task<int> GetAccessFailedCountAsync(TUser user)
@@ -298,7 +294,7 @@ namespace Microsoft.IdentityFramework
             {
                 throw new ArgumentNullException("user");
             }
-            return Task.FromResult<int>(user.AccessFailedCount);
+            return Task.FromResult(user.AccessFailedCount);
         }
 
         public virtual Task<bool> GetLockoutEnabledAsync(TUser user)
@@ -308,7 +304,7 @@ namespace Microsoft.IdentityFramework
             {
                 throw new ArgumentNullException("user");
             }
-            return Task.FromResult<bool>(user.LockoutEnabled);
+            return Task.FromResult(user.LockoutEnabled);
         }
 
         public virtual Task SetLockoutEnabledAsync(TUser user, bool enabled)
@@ -319,19 +315,19 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("user");
             }
             user.LockoutEnabled = enabled;
-            return Task.FromResult<int>(0);
+            return Task.FromResult(0);
         }
 
         public virtual Task<TUser> FindByIdAsync(TKey userId)
         {
             ThrowIfDisposed();
-            return GetUserAggregateAsync((TUser u) => u.Id.Equals(userId));
+            return GetUserAggregateAsync(u => u.Id.Equals(userId));
         }
 
         public virtual Task<TUser> FindByNameAsync(string userName)
         {
             ThrowIfDisposed();
-            return GetUserAggregateAsync((TUser u) => u.UserName.ToUpper() == userName.ToUpper());
+            return GetUserAggregateAsync(u => u.UserName.ToUpper() == userName.ToUpper());
         }
 
         public virtual async Task CreateAsync(TUser user)
@@ -375,26 +371,30 @@ namespace Microsoft.IdentityFramework
 
         public virtual async Task<TUser> FindAsync(UserLoginInfo login)
         {
-            throw new NotImplementedException("LdMemberToken");
-            //this.ThrowIfDisposed();
-            //if (login == null)
-            //{
-            //    throw new ArgumentNullException("login");
-            //}
-            //string provider = login.LoginProvider;
-            //string key = login.ProviderKey;
-            //TUserLogin val = await TaskExtensions.WithCurrentCulture<TUserLogin>(QueryableExtensions.FirstOrDefaultAsync<TUserLogin>((IQueryable<TUserLogin>)this._logins, (Expression<Func<TUserLogin, bool>>)((TUserLogin l) => ((IdentityUserLogin<TKey>)l).LoginProvider == provider && ((IdentityUserLogin<TKey>)l).ProviderKey == key)));
-            //if (val != null)
-            //{
-            //    TKey userId = ((IdentityUserLogin<TKey>)val).UserId;
-            //    ParameterExpression parameterExpression = Expression.Parameter(typeof(TUser), "u");
-            //    _003C_003Ec__DisplayClass42_1 value;
-            //    return await TaskExtensions.WithCurrentCulture<TUser>(this.GetUserAggregateAsync(Expression.Lambda<Func<TUser, bool>>((Expression)Expression.Call(Expression.Property(parameterExpression, (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>).TypeHandle)), (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IEquatable<TKey>).TypeHandle), Expression.Field(Expression.Constant(value, typeof(_003C_003Ec__DisplayClass42_1)), FieldInfo.GetFieldFromHandle((RuntimeFieldHandle)/*OpCode not supported: LdMemberToken*/, typeof(_003C_003Ec__DisplayClass42_1).TypeHandle))), new ParameterExpression[1]
-            //    {
-            //        parameterExpression
-            //    })));
-            //}
-            //return null;
+            //throw new NotImplementedException("LdMemberToken");
+            this.ThrowIfDisposed();
+            if (login == null)
+            {
+                throw new ArgumentNullException("login");
+            }
+            string provider = login.LoginProvider;
+            string key = login.ProviderKey;
+
+            TUserLogin val = await this._logins.FirstOrDefaultAsync(l => l.LoginProvider.Equals(provider) && l.ProviderKey.Equals(key));
+            //TUserLogin val = await TaskExtensions.WithCurrentCulture<TUserLogin>(QueryableExtensions.FirstOrDefaultAsync<TUserLogin>((IQueryable<TUserLogin>)this._logins, ((TUserLogin l) => l.LoginProvider == provider && l.ProviderKey == key)));
+            if (val != null)
+            {
+                TKey userId = val.UserId;
+                return await this._userStore.DbEntitySet.FirstOrDefaultAsync(m => m.Id.Equals(userId));
+
+                //ParameterExpression parameterExpression = Expression.Parameter(typeof(TUser), "u");
+                //_003C_003Ec__DisplayClass42_1 value;
+                //return await TaskExtensions.WithCurrentCulture<TUser>(this.GetUserAggregateAsync(Expression.Lambda<Func<TUser, bool>>((Expression)Expression.Call(Expression.Property(parameterExpression, (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof.TypeHandle)), (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IEquatable<TKey>).TypeHandle), Expression.Field(Expression.Constant(value, typeof(_003C_003Ec__DisplayClass42_1)), FieldInfo.GetFieldFromHandle((RuntimeFieldHandle)/*OpCode not supported: LdMemberToken*/, typeof(_003C_003Ec__DisplayClass42_1).TypeHandle))), new ParameterExpression[1]
+                //{
+                //    parameterExpression
+                //})));
+            }
+            return null;
         }
 
         public virtual Task AddLoginAsync(TUser user, UserLoginInfo login)
@@ -409,12 +409,14 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("login");
             }
             IDbSet<TUserLogin> logins = _logins;
-            TUserLogin val = new TUserLogin();
-            val.UserId = user.Id;
-            val.ProviderKey = login.ProviderKey;
-            val.LoginProvider = login.LoginProvider;
+            TUserLogin val = new TUserLogin
+            {
+                UserId = user.Id,
+                ProviderKey = login.ProviderKey,
+                LoginProvider = login.LoginProvider
+            };
             logins.Add(val);
-            return Task.FromResult<int>(0);
+            return Task.FromResult(0);
         }
 
         public virtual async Task RemoveLoginAsync(TUser user, UserLoginInfo login)
@@ -433,19 +435,19 @@ namespace Microsoft.IdentityFramework
             TUserLogin val;
             if (this.AreLoginsLoaded(user))
             {
-                val = Enumerable.SingleOrDefault<TUserLogin>((IEnumerable<TUserLogin>)((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)user).Logins, (Func<TUserLogin, bool>)delegate (TUserLogin ul)
+                val = Enumerable.SingleOrDefault(user.Logins, delegate (TUserLogin ul)
                 {
-                    if (((IdentityUserLogin<TKey>)ul).LoginProvider == provider)
+                    if (ul.LoginProvider == provider)
                     {
-                        return ((IdentityUserLogin<TKey>)ul).ProviderKey == key;
+                        return ul.ProviderKey == key;
                     }
                     return false;
                 });
             }
             else
             {
-                TKey userId = ((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)user).Id;
-                val = await TaskExtensions.WithCurrentCulture<TUserLogin>(QueryableExtensions.SingleOrDefaultAsync<TUserLogin>((IQueryable<TUserLogin>)this._logins, (Expression<Func<TUserLogin, bool>>)((TUserLogin ul) => ((IdentityUserLogin<TKey>)ul).LoginProvider == provider && ((IdentityUserLogin<TKey>)ul).ProviderKey == key && ((IEquatable<TKey>)((IdentityUserLogin<TKey>)ul).UserId).Equals(userId))));
+                TKey userId = user.Id;
+                val = await TaskExtensions.WithCurrentCulture(QueryableExtensions.SingleOrDefaultAsync(this._logins, (ul => ul.LoginProvider == provider && ul.ProviderKey == key && (ul.UserId).Equals(userId))));
             }
             if (val != null)
             {
@@ -461,7 +463,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("user");
             }
             await this.EnsureLoginsLoaded(user).WithCurrentCulture();
-            return Enumerable.ToList<UserLoginInfo>(Enumerable.Select<TUserLogin, UserLoginInfo>((IEnumerable<TUserLogin>)((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)user).Logins, (Func<TUserLogin, UserLoginInfo>)((TUserLogin l) => new UserLoginInfo(((IdentityUserLogin<TKey>)l).LoginProvider, ((IdentityUserLogin<TKey>)l).ProviderKey))));
+            return Enumerable.ToList(Enumerable.Select(user.Logins, (l => new UserLoginInfo(l.LoginProvider, l.ProviderKey))));
         }
 
         public virtual Task SetPasswordHashAsync(TUser user, string passwordHash)
@@ -472,7 +474,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("user");
             }
             user.PasswordHash = passwordHash;
-            return Task.FromResult<int>(0);
+            return Task.FromResult(0);
         }
 
         public virtual Task<string> GetPasswordHashAsync(TUser user)
@@ -482,12 +484,12 @@ namespace Microsoft.IdentityFramework
             {
                 throw new ArgumentNullException("user");
             }
-            return Task.FromResult<string>(user.PasswordHash);
+            return Task.FromResult(user.PasswordHash);
         }
 
         public virtual Task<bool> HasPasswordAsync(TUser user)
         {
-            return Task.FromResult<bool>(user.PasswordHash != null);
+            return Task.FromResult(user.PasswordHash != null);
         }
 
         public virtual Task SetPhoneNumberAsync(TUser user, string phoneNumber)
@@ -498,7 +500,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("user");
             }
             user.PhoneNumber = phoneNumber;
-            return Task.FromResult<int>(0);
+            return Task.FromResult(0);
         }
 
         public virtual Task<string> GetPhoneNumberAsync(TUser user)
@@ -508,7 +510,7 @@ namespace Microsoft.IdentityFramework
             {
                 throw new ArgumentNullException("user");
             }
-            return Task.FromResult<string>(user.PhoneNumber);
+            return Task.FromResult(user.PhoneNumber);
         }
 
         public virtual Task<bool> GetPhoneNumberConfirmedAsync(TUser user)
@@ -518,7 +520,7 @@ namespace Microsoft.IdentityFramework
             {
                 throw new ArgumentNullException("user");
             }
-            return Task.FromResult<bool>(user.PhoneNumberConfirmed);
+            return Task.FromResult(user.PhoneNumberConfirmed);
         }
 
         public virtual Task SetPhoneNumberConfirmedAsync(TUser user, bool confirmed)
@@ -529,7 +531,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("user");
             }
             user.PhoneNumberConfirmed = confirmed;
-            return Task.FromResult<int>(0);
+            return Task.FromResult(0);
         }
 
         public virtual async Task AddToRoleAsync(TUser user, string roleName)
@@ -543,7 +545,7 @@ namespace Microsoft.IdentityFramework
             {
                 throw new ArgumentException(IdentityResources.ValueCannotBeNullOrEmpty, "roleName");
             }
-            TRole val = await TaskExtensions.WithCurrentCulture<TRole>(QueryableExtensions.SingleOrDefaultAsync<TRole>((IQueryable<TRole>)this._roleStore.DbEntitySet, (Expression<Func<TRole, bool>>)((TRole r) => ((IdentityRole<TKey, TUserRole>)r).Name.ToUpper() == roleName.ToUpper())));
+            TRole val = await TaskExtensions.WithCurrentCulture(QueryableExtensions.SingleOrDefaultAsync(this._roleStore.DbEntitySet, r => r.Name.ToUpper() == roleName.ToUpper()));
             if (val == null)
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, IdentityResources.RoleNotFound, new object[1]
@@ -551,42 +553,48 @@ namespace Microsoft.IdentityFramework
                     roleName
                 }));
             }
-            TUserRole val2 = new TUserRole();
-            ((IdentityUserRole<TKey>)val2).UserId = ((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)user).Id;
-            ((IdentityUserRole<TKey>)val2).RoleId = ((IdentityRole<TKey, TUserRole>)val).Id;
+            TUserRole val2 = new TUserRole
+            {
+                UserId = user.Id,
+                RoleId = val.Id
+            };
             TUserRole entity = val2;
             this._userRoles.Add(entity);
         }
 
         public virtual async Task RemoveFromRoleAsync(TUser user, string roleName)
         {
-            throw new NotImplementedException("LdMemberToken");
-            //this.ThrowIfDisposed();
-            //if (user == null)
-            //{
-            //    throw new ArgumentNullException("user");
-            //}
-            //if (string.IsNullOrWhiteSpace(roleName))
-            //{
-            //    throw new ArgumentException(IdentityResources.ValueCannotBeNullOrEmpty, "roleName");
-            //}
+            //throw new NotImplementedException("LdMemberToken");
+            this.ThrowIfDisposed();
+            if (user == null)
+            {
+                throw new ArgumentNullException("user");
+            }
+            if (string.IsNullOrWhiteSpace(roleName))
+            {
+                throw new ArgumentException(IdentityResources.ValueCannotBeNullOrEmpty, "roleName");
+            }
+
+            TRole val = await this._roleStore.DbEntitySet.SingleOrDefaultAsync(r => r.Name.ToUpper().Equals(roleName.ToUpper()));
             //TRole val = await TaskExtensions.WithCurrentCulture<TRole>(QueryableExtensions.SingleOrDefaultAsync<TRole>((IQueryable<TRole>)this._roleStore.DbEntitySet, (Expression<Func<TRole, bool>>)((TRole r) => ((IdentityRole<TKey, TUserRole>)r).Name.ToUpper() == roleName.ToUpper())));
-            //if (val != null)
-            //{
-            //    TKey roleId = ((IdentityRole<TKey, TUserRole>)val).Id;
-            //    TKey userId = ((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)user).Id;
-            //    IDbSet<TUserRole> userRoles = this._userRoles;
-            //    ParameterExpression parameterExpression = Expression.Parameter(typeof(TUserRole), "r");
-            //    _003C_003Ec__DisplayClass54_1 value;
-            //    TUserRole val2 = await TaskExtensions.WithCurrentCulture<TUserRole>(QueryableExtensions.FirstOrDefaultAsync<TUserRole>((IQueryable<TUserRole>)userRoles, Expression.Lambda<Func<TUserRole, bool>>((Expression)Expression.AndAlso(Expression.Call(Expression.Field(Expression.Constant(value, typeof(_003C_003Ec__DisplayClass54_1)), FieldInfo.GetFieldFromHandle((RuntimeFieldHandle)/*OpCode not supported: LdMemberToken*/, typeof(_003C_003Ec__DisplayClass54_1).TypeHandle)), (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IEquatable<TKey>).TypeHandle), Expression.Property(parameterExpression, (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IdentityUserRole<TKey>).TypeHandle))), Expression.Call(Expression.Property(parameterExpression, (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IdentityUserRole<TKey>).TypeHandle)), (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IEquatable<TKey>).TypeHandle), Expression.Field(Expression.Constant(value, typeof(_003C_003Ec__DisplayClass54_1)), FieldInfo.GetFieldFromHandle((RuntimeFieldHandle)/*OpCode not supported: LdMemberToken*/, typeof(_003C_003Ec__DisplayClass54_1).TypeHandle)))), new ParameterExpression[1]
-            //    {
-            //        parameterExpression
-            //    })));
-            //    if (val2 != null)
-            //    {
-            //        this._userRoles.Remove(val2);
-            //    }
-            //}
+            if (val != null)
+            {
+                TKey roleId = val.Id;
+                TKey userId = user.Id;
+                IDbSet<TUserRole> userRoles = this._userRoles;
+
+                TUserRole val2 = await userRoles.FirstOrDefaultAsync(m => m.RoleId.Equals(roleId) && m.UserId.Equals(userId));
+                //    ParameterExpression parameterExpression = Expression.Parameter(typeof(TUserRole), "r");
+                //    _003C_003Ec__DisplayClass54_1 value;
+                //    TUserRole val2 = await TaskExtensions.WithCurrentCulture<TUserRole>(QueryableExtensions.FirstOrDefaultAsync<TUserRole>((IQueryable<TUserRole>)userRoles, Expression.Lambda<Func<TUserRole, bool>>((Expression)Expression.AndAlso(Expression.Call(Expression.Field(Expression.Constant(value, typeof(_003C_003Ec__DisplayClass54_1)), FieldInfo.GetFieldFromHandle((RuntimeFieldHandle)/*OpCode not supported: LdMemberToken*/, typeof(_003C_003Ec__DisplayClass54_1).TypeHandle)), (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IEquatable<TKey>).TypeHandle), Expression.Property(parameterExpression, (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IdentityUserRole<TKey>).TypeHandle))), Expression.Call(Expression.Property(parameterExpression, (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IdentityUserRole<TKey>).TypeHandle)), (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IEquatable<TKey>).TypeHandle), Expression.Field(Expression.Constant(value, typeof(_003C_003Ec__DisplayClass54_1)), FieldInfo.GetFieldFromHandle((RuntimeFieldHandle)/*OpCode not supported: LdMemberToken*/, typeof(_003C_003Ec__DisplayClass54_1).TypeHandle)))), new ParameterExpression[1]
+                //    {
+                //        parameterExpression
+                //    })));
+                if (val2 != null)
+                {
+                    this._userRoles.Remove(val2);
+                }
+            }
         }
 
         public virtual async Task<IList<string>> GetRolesAsync(TUser user)
@@ -596,36 +604,40 @@ namespace Microsoft.IdentityFramework
             {
                 throw new ArgumentNullException("user");
             }
-            TKey userId = ((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)user).Id;
-            return await TaskExtensions.WithCurrentCulture<List<string>>(QueryableExtensions.ToListAsync<string>(Queryable.Join<TUserRole, TRole, TKey, string>(Queryable.Where<TUserRole>((IQueryable<TUserRole>)this._userRoles, (Expression<Func<TUserRole, bool>>)((TUserRole userRole) => ((IEquatable<TKey>)((IdentityUserRole<TKey>)userRole).UserId).Equals(userId))), (IEnumerable<TRole>)this._roleStore.DbEntitySet, (Expression<Func<TUserRole, TKey>>)((TUserRole userRole) => ((IdentityUserRole<TKey>)userRole).RoleId), (Expression<Func<TRole, TKey>>)((TRole role) => ((IdentityRole<TKey, TUserRole>)role).Id), (Expression<Func<TUserRole, TRole, string>>)((TUserRole userRole, TRole role) => ((IdentityRole<TKey, TUserRole>)role).Name))));
+            TKey userId = (user).Id;
+            return await TaskExtensions.WithCurrentCulture(QueryableExtensions.ToListAsync(Queryable.Join(Queryable.Where(this._userRoles, (userRole => (userRole.UserId).Equals(userId))), this._roleStore.DbEntitySet, (userRole => userRole.RoleId), (role => role.Id), ((userRole, role) => role.Name))));
         }
 
         public virtual async Task<bool> IsInRoleAsync(TUser user, string roleName)
         {
-            throw new NotImplementedException("LdMemberToken");
-            //this.ThrowIfDisposed();
-            //if (user == null)
-            //{
-            //    throw new ArgumentNullException("user");
-            //}
-            //if (string.IsNullOrWhiteSpace(roleName))
-            //{
-            //    throw new ArgumentException(IdentityResources.ValueCannotBeNullOrEmpty, "roleName");
-            //}
+            //throw new NotImplementedException("LdMemberToken");
+            this.ThrowIfDisposed();
+            if (user == null)
+            {
+                throw new ArgumentNullException("user");
+            }
+            if (string.IsNullOrWhiteSpace(roleName))
+            {
+                throw new ArgumentException(IdentityResources.ValueCannotBeNullOrEmpty, "roleName");
+            }
             //TRole val = await TaskExtensions.WithCurrentCulture<TRole>(QueryableExtensions.SingleOrDefaultAsync<TRole>((IQueryable<TRole>)this._roleStore.DbEntitySet, (Expression<Func<TRole, bool>>)((TRole r) => ((IdentityRole<TKey, TUserRole>)r).Name.ToUpper() == roleName.ToUpper())));
-            //if (val != null)
-            //{
-            //    TKey userId = ((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)user).Id;
-            //    TKey roleId = ((IdentityRole<TKey, TUserRole>)val).Id;
-            //    IDbSet<TUserRole> userRoles = this._userRoles;
-            //    ParameterExpression parameterExpression = Expression.Parameter(typeof(TUserRole), "ur");
-            //    _003C_003Ec__DisplayClass56_1 value;
-            //    return await TaskExtensions.WithCurrentCulture<bool>(QueryableExtensions.AnyAsync<TUserRole>((IQueryable<TUserRole>)userRoles, Expression.Lambda<Func<TUserRole, bool>>((Expression)Expression.AndAlso(Expression.Call(Expression.Property(parameterExpression, (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IdentityUserRole<TKey>).TypeHandle)), (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IEquatable<TKey>).TypeHandle), Expression.Field(Expression.Constant(value, typeof(_003C_003Ec__DisplayClass56_1)), FieldInfo.GetFieldFromHandle((RuntimeFieldHandle)/*OpCode not supported: LdMemberToken*/, typeof(_003C_003Ec__DisplayClass56_1).TypeHandle))), Expression.Call(Expression.Property(parameterExpression, (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IdentityUserRole<TKey>).TypeHandle)), (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IEquatable<TKey>).TypeHandle), Expression.Field(Expression.Constant(value, typeof(_003C_003Ec__DisplayClass56_1)), FieldInfo.GetFieldFromHandle((RuntimeFieldHandle)/*OpCode not supported: LdMemberToken*/, typeof(_003C_003Ec__DisplayClass56_1).TypeHandle)))), new ParameterExpression[1]
-            //    {
-            //        parameterExpression
-            //    })));
-            //}
-            //return false;
+            TRole val = await this._roleStore.DbEntitySet.SingleOrDefaultAsync(r => r.Name.ToUpper().Equals(roleName.ToUpper()));
+            if (val != null)
+            {
+                TKey userId = user.Id;
+                TKey roleId = val.Id;
+                IDbSet<TUserRole> userRoles = this._userRoles;
+
+                return await userRoles.AnyAsync(m => m.RoleId.Equals(roleId) && m.UserId.Equals(userId));
+
+                //    ParameterExpression parameterExpression = Expression.Parameter(typeof(TUserRole), "ur");
+                //    _003C_003Ec__DisplayClass56_1 value;
+                //    return await TaskExtensions.WithCurrentCulture<bool>(QueryableExtensions.AnyAsync<TUserRole>((IQueryable<TUserRole>)userRoles, Expression.Lambda<Func<TUserRole, bool>>((Expression)Expression.AndAlso(Expression.Call(Expression.Property(parameterExpression, (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IdentityUserRole<TKey>).TypeHandle)), (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IEquatable<TKey>).TypeHandle), Expression.Field(Expression.Constant(value, typeof(_003C_003Ec__DisplayClass56_1)), FieldInfo.GetFieldFromHandle((RuntimeFieldHandle)/*OpCode not supported: LdMemberToken*/, typeof(_003C_003Ec__DisplayClass56_1).TypeHandle))), Expression.Call(Expression.Property(parameterExpression, (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IdentityUserRole<TKey>).TypeHandle)), (MethodInfo)MethodBase.GetMethodFromHandle((RuntimeMethodHandle)/*OpCode not supported: LdMemberToken*/, typeof(IEquatable<TKey>).TypeHandle), Expression.Field(Expression.Constant(value, typeof(_003C_003Ec__DisplayClass56_1)), FieldInfo.GetFieldFromHandle((RuntimeFieldHandle)/*OpCode not supported: LdMemberToken*/, typeof(_003C_003Ec__DisplayClass56_1).TypeHandle)))), new ParameterExpression[1]
+                //    {
+                //        parameterExpression
+                //    })));
+            }
+            return false;
         }
 
         public virtual Task SetSecurityStampAsync(TUser user, string stamp)
@@ -636,7 +648,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("user");
             }
             user.SecurityStamp = stamp;
-            return Task.FromResult<int>(0);
+            return Task.FromResult(0);
         }
 
         public virtual Task<string> GetSecurityStampAsync(TUser user)
@@ -646,7 +658,7 @@ namespace Microsoft.IdentityFramework
             {
                 throw new ArgumentNullException("user");
             }
-            return Task.FromResult<string>(user.SecurityStamp);
+            return Task.FromResult(user.SecurityStamp);
         }
 
         public virtual Task SetTwoFactorEnabledAsync(TUser user, bool enabled)
@@ -657,7 +669,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("user");
             }
             user.TwoFactorEnabled = enabled;
-            return Task.FromResult<int>(0);
+            return Task.FromResult(0);
         }
 
         public virtual Task<bool> GetTwoFactorEnabledAsync(TUser user)
@@ -667,61 +679,64 @@ namespace Microsoft.IdentityFramework
             {
                 throw new ArgumentNullException("user");
             }
-            return Task.FromResult<bool>(user.TwoFactorEnabled);
+            return Task.FromResult(user.TwoFactorEnabled);
         }
 
         private async Task SaveChanges()
         {
             if (this.AutoSaveChanges)
             {
-                await TaskExtensions.WithCurrentCulture<int>(this.Context.SaveChangesAsync());
+                await TaskExtensions.WithCurrentCulture(this.Context.SaveChangesAsync());
             }
         }
 
         private bool AreClaimsLoaded(TUser user)
         {
-            return Context.Entry<TUser>(user).Collection((TUser u) => u.Claims).IsLoaded;
+            return Context.Entry(user).Collection(u => u.Claims).IsLoaded;
         }
 
         private async Task EnsureClaimsLoaded(TUser user)
         {
             if (!this.AreClaimsLoaded(user))
             {
-                TKey userId = ((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)user).Id;
-                await Queryable.Where<TUserClaim>((IQueryable<TUserClaim>)this._userClaims, (Expression<Func<TUserClaim, bool>>)((TUserClaim uc) => ((IEquatable<TKey>)((IdentityUserClaim<TKey>)uc).UserId).Equals(userId))).LoadAsync().WithCurrentCulture();
-                this.Context.Entry<TUser>(user).Collection((TUser u) => ((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)u).Claims).IsLoaded = true;
+                TKey userId = (user).Id;
+
+                await this._userClaims.Where(m => m.UserId.Equals(userId)).LoadAsync().WithCurrentCulture();
+                //await Queryable.Where<TUserClaim>((IQueryable<TUserClaim>)this._userClaims, (Expression<Func<TUserClaim, bool>>)((TUserClaim uc) => ((IEquatable<TKey>)((IdentityUserClaim<TKey>)uc).UserId).Equals(userId))).LoadAsync().WithCurrentCulture();
+                this.Context.Entry(user).Collection(u => u.Claims).IsLoaded = true;
             }
         }
 
         private async Task EnsureRolesLoaded(TUser user)
         {
-            if (!this.Context.Entry<TUser>(user).Collection((TUser u) => ((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)u).Roles).IsLoaded)
+            if (!this.Context.Entry(user).Collection(u => u.Roles).IsLoaded)
             {
-                TKey userId = ((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)user).Id;
-                await Queryable.Where<TUserRole>((IQueryable<TUserRole>)this._userRoles, (Expression<Func<TUserRole, bool>>)((TUserRole uc) => ((IEquatable<TKey>)((IdentityUserRole<TKey>)uc).UserId).Equals(userId))).LoadAsync().WithCurrentCulture();
-                this.Context.Entry<TUser>(user).Collection((TUser u) => ((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)u).Roles).IsLoaded = true;
+                TKey userId = (user).Id;
+                await this._userRoles.Where(m => m.UserId.Equals(userId)).LoadAsync().WithCurrentCulture();
+                //await Queryable.Where<TUserRole>((IQueryable<TUserRole>)this._userRoles, (Expression<Func<TUserRole, bool>>)((TUserRole uc) => ((IEquatable<TKey>)((IdentityUserRole<TKey>)uc).UserId).Equals(userId))).LoadAsync().WithCurrentCulture();
+                this.Context.Entry(user).Collection(u => u.Roles).IsLoaded = true;
             }
         }
 
         private bool AreLoginsLoaded(TUser user)
         {
-            return Context.Entry<TUser>(user).Collection((TUser u) => u.Logins).IsLoaded;
+            return Context.Entry(user).Collection(u => u.Logins).IsLoaded;
         }
 
         private async Task EnsureLoginsLoaded(TUser user)
         {
             if (!this.AreLoginsLoaded(user))
             {
-                TKey userId = ((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)user).Id;
-                await Queryable.Where<TUserLogin>((IQueryable<TUserLogin>)this._logins, (Expression<Func<TUserLogin, bool>>)((TUserLogin uc) => ((IEquatable<TKey>)((IdentityUserLogin<TKey>)uc).UserId).Equals(userId))).LoadAsync().WithCurrentCulture();
-                this.Context.Entry<TUser>(user).Collection((TUser u) => ((IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>)u).Logins).IsLoaded = true;
+                TKey userId = (user).Id;
+                await this._logins.Where(m => m.UserId.Equals(userId)).LoadAsync().WithCurrentCulture();
+                //await Queryable.Where<TUserLogin>((IQueryable<TUserLogin>)this._logins, ((TUserLogin uc) => ((IEquatable<TKey>)uc.UserId).Equals(userId))).LoadAsync().WithCurrentCulture();
+                this.Context.Entry(user).Collection(u => u.Logins).IsLoaded = true;
             }
         }
 
         protected virtual async Task<TUser> GetUserAggregateAsync(Expression<Func<TUser, bool>> filter)
         {
-            TKey id;
-            TUser user = (!FindByIdFilterParser.TryMatchAndGetId(filter, out id)) ? (await TaskExtensions.WithCurrentCulture<TUser>(QueryableExtensions.FirstOrDefaultAsync<TUser>(this.Users, filter))) : (await TaskExtensions.WithCurrentCulture<TUser>(this._userStore.GetByIdAsync((object)id)));
+            TUser user = (!FindByIdFilterParser.TryMatchAndGetId(filter, out TKey id)) ? (await TaskExtensions.WithCurrentCulture(QueryableExtensions.FirstOrDefaultAsync(this.Users, filter))) : (await TaskExtensions.WithCurrentCulture(this._userStore.GetByIdAsync(id)));
             if (user != null)
             {
                 await this.EnsureClaimsLoaded(user).WithCurrentCulture();
