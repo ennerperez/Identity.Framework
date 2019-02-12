@@ -55,7 +55,7 @@ namespace Microsoft.IdentityFramework
         public Task<TRole> FindByNameAsync(string roleName)
         {
             ThrowIfDisposed();
-            return QueryableExtensions.FirstOrDefaultAsync<TRole>(_roleStore.EntitySet, (Expression<Func<TRole, bool>>)((TRole u) => u.Name.ToUpper() == roleName.ToUpper()));
+            return QueryableExtensions.FirstOrDefaultAsync(_roleStore.EntitySet, (u => u.Name.ToUpper() == roleName.ToUpper()));
         }
 
         public virtual async Task CreateAsync(TRole role)
@@ -66,7 +66,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("role");
             }
             this._roleStore.Create(role);
-            await TaskExtensions.WithCurrentCulture<int>(this.Context.SaveChangesAsync());
+            await TaskExtensions.WithCurrentCulture(this.Context.SaveChangesAsync());
         }
 
         public virtual async Task DeleteAsync(TRole role)
@@ -77,7 +77,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("role");
             }
             this._roleStore.Delete(role);
-            await TaskExtensions.WithCurrentCulture<int>(this.Context.SaveChangesAsync());
+            await TaskExtensions.WithCurrentCulture(this.Context.SaveChangesAsync());
         }
 
         public virtual async Task UpdateAsync(TRole role)
@@ -88,7 +88,7 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("role");
             }
             this._roleStore.Update(role);
-            await TaskExtensions.WithCurrentCulture<int>(this.Context.SaveChangesAsync());
+            await TaskExtensions.WithCurrentCulture(this.Context.SaveChangesAsync());
         }
 
         public void Dispose()
