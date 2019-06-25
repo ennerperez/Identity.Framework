@@ -17,51 +17,42 @@ namespace Microsoft.IdentityFramework
 {
     public class IdentityDbContext : IdentityDbContext<IdentityUser, IdentityRole, string, IdentityUserLogin, IdentityUserRole, IdentityUserClaim>
     {
-        public IdentityDbContext()
-            : this("DefaultConnection")
+        public IdentityDbContext() : this("DefaultConnection")
         {
         }
 
-        public IdentityDbContext(string nameOrConnectionString)
-            : base(nameOrConnectionString)
+        public IdentityDbContext(string nameOrConnectionString) : base(nameOrConnectionString)
         {
         }
 
-        public IdentityDbContext(DbConnection existingConnection, DbCompiledModel model, bool contextOwnsConnection)
-            : base(existingConnection, model, contextOwnsConnection)
+        public IdentityDbContext(DbConnection existingConnection, DbCompiledModel model, bool contextOwnsConnection) : base(existingConnection, model, contextOwnsConnection)
         {
         }
 
-        public IdentityDbContext(DbCompiledModel model)
-            : base(model)
+        public IdentityDbContext(DbCompiledModel model) : base(model)
         {
         }
 
-        public IdentityDbContext(DbConnection existingConnection, bool contextOwnsConnection)
-            : base(existingConnection, contextOwnsConnection)
+        public IdentityDbContext(DbConnection existingConnection, bool contextOwnsConnection) : base(existingConnection, contextOwnsConnection)
         {
         }
 
-        public IdentityDbContext(string nameOrConnectionString, DbCompiledModel model)
-            : base(nameOrConnectionString, model)
+        public IdentityDbContext(string nameOrConnectionString, DbCompiledModel model) : base(nameOrConnectionString, model)
         {
         }
     }
 
     public class IdentityDbContext<TUser> : IdentityDbContext<TUser, IdentityRole, string, IdentityUserLogin, IdentityUserRole, IdentityUserClaim> where TUser : IdentityUser
     {
-        public IdentityDbContext()
-            : this("DefaultConnection")
+        public IdentityDbContext() : this("DefaultConnection")
         {
         }
 
-        public IdentityDbContext(string nameOrConnectionString)
-            : this(nameOrConnectionString, true)
+        public IdentityDbContext(string nameOrConnectionString) : this(nameOrConnectionString, true)
         {
         }
 
-        public IdentityDbContext(string nameOrConnectionString, bool throwIfV1Schema)
-            : base(nameOrConnectionString)
+        public IdentityDbContext(string nameOrConnectionString, bool throwIfV1Schema) : base(nameOrConnectionString)
         {
             if (throwIfV1Schema && IsIdentityV1Schema(this))
             {
@@ -69,30 +60,25 @@ namespace Microsoft.IdentityFramework
             }
         }
 
-        public IdentityDbContext(DbConnection existingConnection, DbCompiledModel model, bool contextOwnsConnection)
-            : base(existingConnection, model, contextOwnsConnection)
+        public IdentityDbContext(DbConnection existingConnection, DbCompiledModel model, bool contextOwnsConnection) : base(existingConnection, model, contextOwnsConnection)
         {
         }
 
-        public IdentityDbContext(DbCompiledModel model)
-            : base(model)
+        public IdentityDbContext(DbCompiledModel model) : base(model)
         {
         }
 
-        public IdentityDbContext(DbConnection existingConnection, bool contextOwnsConnection)
-            : base(existingConnection, contextOwnsConnection)
+        public IdentityDbContext(DbConnection existingConnection, bool contextOwnsConnection) : base(existingConnection, contextOwnsConnection)
         {
         }
 
-        public IdentityDbContext(string nameOrConnectionString, DbCompiledModel model)
-            : base(nameOrConnectionString, model)
+        public IdentityDbContext(string nameOrConnectionString, DbCompiledModel model) : base(nameOrConnectionString, model)
         {
         }
 
         internal static bool IsIdentityV1Schema(DbContext db)
         {
-            SqlConnection sqlConnection = db.Database.Connection as SqlConnection;
-            if (sqlConnection == null)
+            if (!(db.Database.Connection is SqlConnection sqlConnection))
             {
                 return false;
             }
@@ -122,7 +108,7 @@ namespace Microsoft.IdentityFramework
                 }
             }
             List<string> list2 = list;
-            return Enumerable.All<string>((IEnumerable<string>)columns, (Func<string, bool>)list2.Contains);
+            return Enumerable.All(columns, list2.Contains);
         }
     }
 
@@ -146,33 +132,27 @@ namespace Microsoft.IdentityFramework
             set;
         }
 
-        public IdentityDbContext()
-            : this("DefaultConnection")
+        public IdentityDbContext() : this("DefaultConnection")
         {
         }
 
-        public IdentityDbContext(string nameOrConnectionString)
-            : base(nameOrConnectionString)
+        public IdentityDbContext(string nameOrConnectionString) : base(nameOrConnectionString)
         {
         }
 
-        public IdentityDbContext(DbConnection existingConnection, DbCompiledModel model, bool contextOwnsConnection)
-            : base(existingConnection, model, contextOwnsConnection)
+        public IdentityDbContext(DbConnection existingConnection, DbCompiledModel model, bool contextOwnsConnection) : base(existingConnection, model, contextOwnsConnection)
         {
         }
 
-        public IdentityDbContext(DbCompiledModel model)
-            : base(model)
+        public IdentityDbContext(DbCompiledModel model) : base(model)
         {
         }
 
-        public IdentityDbContext(DbConnection existingConnection, bool contextOwnsConnection)
-            : base(existingConnection, contextOwnsConnection)
+        public IdentityDbContext(DbConnection existingConnection, bool contextOwnsConnection) : base(existingConnection, contextOwnsConnection)
         {
         }
 
-        public IdentityDbContext(string nameOrConnectionString, DbCompiledModel model)
-            : base(nameOrConnectionString, model)
+        public IdentityDbContext(string nameOrConnectionString, DbCompiledModel model) : base(nameOrConnectionString, model)
         {
         }
 
@@ -183,21 +163,21 @@ namespace Microsoft.IdentityFramework
                 throw new ArgumentNullException("modelBuilder");
             }
             EntityTypeConfiguration<TUser> entityTypeConfiguration = modelBuilder.Entity<TUser>().ToTable("Users");
-            entityTypeConfiguration.HasMany((TUser u) => u.Roles).WithRequired().HasForeignKey((TUserRole ur) => ur.UserId);
-            entityTypeConfiguration.HasMany((TUser u) => u.Claims).WithRequired().HasForeignKey((TUserClaim uc) => uc.UserId);
-            entityTypeConfiguration.HasMany((TUser u) => u.Logins).WithRequired().HasForeignKey((TUserLogin ul) => ul.UserId);
-            entityTypeConfiguration.Property((TUser u) => u.UserName).IsRequired().HasMaxLength(256)
+            entityTypeConfiguration.HasMany(u => u.Roles).WithRequired().HasForeignKey(ur => ur.UserId);
+            entityTypeConfiguration.HasMany(u => u.Claims).WithRequired().HasForeignKey((uc) => uc.UserId);
+            entityTypeConfiguration.HasMany(u => u.Logins).WithRequired().HasForeignKey((ul) => ul.UserId);
+            entityTypeConfiguration.Property(u => u.UserName).IsRequired().HasMaxLength(256)
                 .HasColumnAnnotation("Index", new IndexAnnotation(new IndexAttribute("UserNameIndex")
                 {
                     IsUnique = true
                 }));
-            entityTypeConfiguration.Property((TUser u) => u.Email).HasMaxLength(256);
-            modelBuilder.Entity<TUserRole>().HasKey((TUserRole r) => new
+            entityTypeConfiguration.Property(u => u.Email).HasMaxLength(256);
+            modelBuilder.Entity<TUserRole>().HasKey(r => new
             {
                 r.UserId,
                 r.RoleId
             }).ToTable("UserRoles");
-            modelBuilder.Entity<TUserLogin>().HasKey((TUserLogin l) => new
+            modelBuilder.Entity<TUserLogin>().HasKey((l) => new
             {
                 l.LoginProvider,
                 l.ProviderKey,
@@ -205,30 +185,29 @@ namespace Microsoft.IdentityFramework
             }).ToTable("UserLogins");
             modelBuilder.Entity<TUserClaim>().ToTable("UserClaims");
             EntityTypeConfiguration<TRole> entityTypeConfiguration2 = modelBuilder.Entity<TRole>().ToTable("Roles");
-            entityTypeConfiguration2.Property((TRole r) => r.Name).IsRequired().HasMaxLength(256)
+            entityTypeConfiguration2.Property(r => r.Name).IsRequired().HasMaxLength(256)
                 .HasColumnAnnotation("Index", new IndexAnnotation(new IndexAttribute("RoleNameIndex")
                 {
                     IsUnique = true
                 }));
-            entityTypeConfiguration2.HasMany((TRole r) => r.Users).WithRequired().HasForeignKey((TUserRole ur) => ur.RoleId);
+            entityTypeConfiguration2.HasMany(r => r.Users).WithRequired().HasForeignKey(ur => ur.RoleId);
         }
 
         protected override DbEntityValidationResult ValidateEntity(DbEntityEntry entityEntry, IDictionary<object, object> items)
         {
             if (entityEntry != null && entityEntry.State == EntityState.Added)
             {
-                List<DbValidationError> list = new List<DbValidationError>();
-                TUser user = entityEntry.Entity as TUser;
-                if (user != null)
+                var list = new List<DbValidationError>();
+                if (entityEntry.Entity is TUser user)
                 {
-                    if (Queryable.Any<TUser>((IQueryable<TUser>)Users, (Expression<Func<TUser, bool>>)((TUser u) => string.Equals(u.UserName, user.UserName))))
+                    if (Queryable.Any(Users, (u => string.Equals(u.UserName, user.UserName))))
                     {
                         list.Add(new DbValidationError("User", string.Format(CultureInfo.CurrentCulture, IdentityResources.DuplicateUserName, new object[1]
                         {
                             user.UserName
                         })));
                     }
-                    if (RequireUniqueEmail && Queryable.Any<TUser>((IQueryable<TUser>)Users, (Expression<Func<TUser, bool>>)((TUser u) => string.Equals(u.Email, user.Email))))
+                    if (RequireUniqueEmail && Queryable.Any(Users, (u => string.Equals(u.Email, user.Email))))
                     {
                         list.Add(new DbValidationError("User", string.Format(CultureInfo.CurrentCulture, IdentityResources.DuplicateEmail, new object[1]
                         {
@@ -238,8 +217,7 @@ namespace Microsoft.IdentityFramework
                 }
                 else
                 {
-                    TRole role = entityEntry.Entity as TRole;
-                    if (role != null && Queryable.Any<TRole>((IQueryable<TRole>)Roles, (Expression<Func<TRole, bool>>)((TRole r) => string.Equals(r.Name, role.Name))))
+                    if (entityEntry.Entity is TRole role && Queryable.Any(Roles, (r => string.Equals(r.Name, role.Name))))
                     {
                         list.Add(new DbValidationError("Role", string.Format(CultureInfo.CurrentCulture, IdentityResources.RoleAlreadyExists, new object[1]
                         {
@@ -247,7 +225,7 @@ namespace Microsoft.IdentityFramework
                         })));
                     }
                 }
-                if (Enumerable.Any<DbValidationError>((IEnumerable<DbValidationError>)list))
+                if (Enumerable.Any(list))
                 {
                     return new DbEntityValidationResult(entityEntry, list);
                 }
